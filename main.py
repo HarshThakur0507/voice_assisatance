@@ -3,99 +3,68 @@ import pyttsx3
 import datetime
 import wikipedia
 import webbrowser
-import os
 import pyjokes
+import time
 
-# Initialize engine once (important)
 engine = pyttsx3.init()
+listening = True   # Control variable
 
 def speak(text):
     print(f"Assistant: {text}")
-    try:
-        engine.say(text)
-        engine.runAndWait()
-    except Exception as e:
-        print("Speech output error:", e)
-
-def wish_user():
-    hour = datetime.datetime.now().hour
-    
-    if hour < 12:
-        speak("Good Morning!")
-    elif hour < 18:
-        speak("Good Afternoon!")
-    else:
-        speak("Good Evening!")
-        
-    speak("I am your voice assistant. How can I help you today?")
+    engine.say(text)
+    engine.runAndWait()
 
 def take_command():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        r.pause_threshold = 1
+        audio = r.listen(source)
+
     try:
-        return input("You (type your command): ").lower().strip()
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-in')
+        print(f"You said: {query}")
+        return query.lower()
     except:
         return ""
 
 def run_assistant():
-    wish_user()
-    
+    global listening
+    speak("Voice assistant activated.")
+
     while True:
-        query = take_command()
 
-        if not query:
-            speak("Please type something.")
-            continue
+        if listening:
+            query = take_command()
+        else:
+            query = input("Assistant paused. Type 'resume' to continue: ").lower()
 
-        # Wikipedia Search
-        if "wikipedia" in query:
-            speak("Searching Wikipedia...")
-            search_query = query.replace("wikipedia", "").strip()
-            
-            if search_query == "":
-                speak("Please tell me what to search on Wikipedia.")
+            if query == "resume":
+                listening = True
+                speak("Resuming listening.")
                 continue
-            
-            try:
-                result = wikipedia.summary(search_query, sentences=2)
-                speak("According to Wikipedia:")
-                speak(result)
-            except wikipedia.exceptions.DisambiguationError:
-                speak("There are multiple results. Please be more specific.")
-            except wikipedia.exceptions.PageError:
-                speak("Sorry, I couldn't find anything on that topic.")
-            except Exception as e:
-                speak("An error occurred while searching Wikipedia.")
+            else:
+                continue
 
-        # Open YouTube
+        if "stop listening" in query:
+            speak("Okay, I will stop listening. Type resume to continue.")
+            listening = False
+
         elif "open youtube" in query:
-            speak("Opening YouTube...")
-            webbrowser.open("https://www.youtube.com")
+            speak("Opening YouTube")
+            webbrowser.open("https://youtube.com")
 
-        # Open Google
-        elif "open google" in query:
-            speak("Opening Google...")
-            webbrowser.open("https://www.google.com")
-
-        # Tell Time
         elif "time" in query:
             str_time = datetime.datetime.now().strftime("%H:%M:%S")
             speak(f"The current time is {str_time}")
 
-        # Tell Joke
-        elif "joke" in query:
-            try:
-                joke = pyjokes.get_joke()
-                speak(joke)
-            except:
-                speak("Sorry, I couldn't fetch a joke.")
-
-        # Exit
         elif "exit" in query or "bye" in query:
-            speak("Goodbye! Have a nice day!")
+            speak("Goodbye!")
             break
 
-        # Unknown command
         else:
-            speak("Sorry, I didn't understand that. Try again.")
+            speak("I did not understand that command.")
 
 if __name__ == "__main__":
     run_assistant()
